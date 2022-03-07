@@ -5,6 +5,8 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 
@@ -13,12 +15,14 @@ import java.util.Arrays;
  * @date 2022.03.05
  */
 public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
+    static private final Logger LOG = LoggerFactory.getLogger(GameMsgHandler.class);
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        System.out.println("收到客户端消息, msg = " + msg);
+        if (null ==ctx || null == msg) return;
+        LOG.info("收到客户端消息, msg = {}" , msg);
 
-        // WebSocket 二进制消息会通过 HttpServerCodec 解码成 BinaryWebSocketFrame 类对象
+        /*// WebSocket 二进制消息会通过 HttpServerCodec 解码成 BinaryWebSocketFrame 类对象
         BinaryWebSocketFrame frame = (BinaryWebSocketFrame)msg;
         ByteBuf byteBuf = frame.content();
 
@@ -26,7 +30,7 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
         byte[] byteArray = new byte[byteBuf.readableBytes()];
         byteBuf.readBytes(byteArray);
 
-        System.out.println("收到的字节 = "+ Arrays.toString(byteArray)+"\n");
+        LOG.info("收到的字节 = {}" , Arrays.toString(byteArray) + "\n");*/
 
     }
 }
