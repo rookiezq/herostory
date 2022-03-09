@@ -9,6 +9,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +61,9 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
                 int userId = cmd.getUserId();
                 String heroAvatar = cmd.getHeroAvatar();
 
-                userMap.put(userId, new User(userId, heroAvatar));
-
+                userMap.putIfAbsent(userId, new User(userId, heroAvatar));
+                //将id保存到session
+                ctx.channel().attr(AttributeKey.valueOf("userId")).set(userId);
                 GameMsgProtocol.UserEntryResult.Builder builder = GameMsgProtocol.UserEntryResult.newBuilder();
                 builder.setUserId(userId);
                 builder.setHeroAvatar(heroAvatar);
@@ -74,7 +76,7 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
                 GameMsgProtocol.WhoElseIsHereResult.Builder results = GameMsgProtocol.WhoElseIsHereResult.newBuilder();
 
                 for (User user : userMap.values()) {
-                    //LOG.info("user:{}", user);
+                    LOG.info("user:{}", user);
                     GameMsgProtocol.WhoElseIsHereResult.UserInfo.Builder builder = GameMsgProtocol.WhoElseIsHereResult.UserInfo.newBuilder();
                     builder.setUserId(user.getUserId());
                     builder.setHeroAvatar(user.getHeroAvatar());
@@ -83,6 +85,19 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
 
                 GameMsgProtocol.WhoElseIsHereResult result = results.build();
                 ctx.writeAndFlush(result);
+            } else if (msg instanceof GameMsgProtocol.UserMoveToCmd) {
+                //用户移动
+                GameMsgProtocol.UserMoveToCmd cmd = (GameMsgProtocol.UserMoveToCmd) msg;
+
+                GameMsgProtocol.UserMoveToResult.Builder builder = GameMsgProtocol.UserMoveToResult.newBuilder();
+                int userId = (int) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+                builder.setMoveUserId(userId);
+                builder.setMoveToPosX(cmd.getMoveToPosX());
+                builder.setMoveToPosY(cmd.getMoveToPosY());
+
+                // 构建结果并广播
+                GameMsgProtocol.UserMoveToResult userMoveToResult = builder.build();
+                group.writeAndFlush(userMoveToResult);
             }
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
