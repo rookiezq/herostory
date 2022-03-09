@@ -38,6 +38,7 @@ public class ServerMain {
                         new HttpObjectAggregator(65535), //内容长度限制
                         new WebSocketServerProtocolHandler("/websocket"), //websocket协议处理器，在这里握手、ping、pong等消息
                         new GameMsgDecoder(), //自定义解码器
+                        new GameMsgEncoder(), //自定义编码器
                         new GameMsgHandler() //自定义消息处理器
                 );
             }
