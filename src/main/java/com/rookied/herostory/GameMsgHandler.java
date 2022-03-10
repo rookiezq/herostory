@@ -50,6 +50,34 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
+    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+        if (ctx == null) {
+            return;
+        }
+        try {
+            super.handlerRemoved(ctx);
+            Integer userId = (Integer) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+            if (userId == null) {
+                return;
+            }
+            LOG.debug("userId:{} 离场", userId);
+            GameMsgProtocol.UserQuitResult.Builder builder = GameMsgProtocol.UserQuitResult.newBuilder();
+            builder.setQuitUserId(userId);
+            GameMsgProtocol.UserQuitResult result = builder.build();
+            group.writeAndFlush(result);
+
+            group.remove(ctx.channel());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
+    }
+
+    /**
+     *
+     */
+
+
+    @Override
     protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
         if (null == ctx || null == msg) return;
         LOG.info("收到客户端消息, msgClazz = {}, msgBody = {}", msg.getClass().getSimpleName(), msg);
@@ -60,10 +88,11 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
                 GameMsgProtocol.UserEntryCmd cmd = (GameMsgProtocol.UserEntryCmd) msg;
                 int userId = cmd.getUserId();
                 String heroAvatar = cmd.getHeroAvatar();
-
+                //防止多线程冲突
                 userMap.putIfAbsent(userId, new User(userId, heroAvatar));
                 //将id保存到session
                 ctx.channel().attr(AttributeKey.valueOf("userId")).set(userId);
+                LOG.debug("userId:{} 进场", userId);
                 GameMsgProtocol.UserEntryResult.Builder builder = GameMsgProtocol.UserEntryResult.newBuilder();
                 builder.setUserId(userId);
                 builder.setHeroAvatar(heroAvatar);
@@ -90,7 +119,10 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
                 GameMsgProtocol.UserMoveToCmd cmd = (GameMsgProtocol.UserMoveToCmd) msg;
 
                 GameMsgProtocol.UserMoveToResult.Builder builder = GameMsgProtocol.UserMoveToResult.newBuilder();
-                int userId = (int) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+                Integer userId = (Integer) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
+                if (userId == null) {
+                    return;
+                }
                 builder.setMoveUserId(userId);
                 builder.setMoveToPosX(cmd.getMoveToPosX());
                 builder.setMoveToPosY(cmd.getMoveToPosY());
