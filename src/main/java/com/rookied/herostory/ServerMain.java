@@ -1,5 +1,6 @@
 package com.rookied.herostory;
 
+import com.rookied.herostory.cmdhandler.CmdHandlerFactory;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -24,6 +25,8 @@ public class ServerMain {
     static private final int SERVER_PORT = 12345;
 
     public static void main(String[] args) {
+        CmdHandlerFactory.init();
+
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 

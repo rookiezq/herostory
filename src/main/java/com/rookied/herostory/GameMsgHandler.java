@@ -72,7 +72,7 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
         LOG.info("收到客户端消息, msgClazz = {}, msgBody = {}", msg.getClass().getSimpleName(), msg);
 
         try {
-            ICmdHandler<? extends GeneratedMessageV3> handler = new CmdHandlerFactory().create(msg);
+            ICmdHandler<? extends GeneratedMessageV3> handler = CmdHandlerFactory.create(msg.getClass());
             handler.handle(ctx, cast(msg));
 
         } catch (Exception e) {
