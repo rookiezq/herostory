@@ -1,6 +1,7 @@
 package com.rookied.herostory;
 
 import com.google.protobuf.GeneratedMessageV3;
+import com.google.protobuf.Message;
 import com.rookied.herostory.msg.GameMsgProtocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,7 +21,7 @@ public class GameMsgDecoder extends ChannelInboundHandlerAdapter {
     static private final Logger LOG = LoggerFactory.getLogger(GameMsgDecoder.class);
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg){
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         //instanceof自动判空
         if (null == ctx || !(msg instanceof BinaryWebSocketFrame)) {
             return;
@@ -35,20 +36,16 @@ public class GameMsgDecoder extends ChannelInboundHandlerAdapter {
             byte[] msgBody = new byte[content.readableBytes()];
             content.readBytes(msgBody);
 
-            GeneratedMessageV3 cmd = null;
-            switch (msgCode) {
-                case GameMsgProtocol.MsgCode.USER_ENTRY_CMD_VALUE:
-                    cmd = GameMsgProtocol.UserEntryCmd.parseFrom(msgBody);
-                    break;
-                case GameMsgProtocol.MsgCode.WHO_ELSE_IS_HERE_CMD_VALUE:
-                    cmd = GameMsgProtocol.WhoElseIsHereCmd.parseFrom(msgBody);
-                    break;
-                case GameMsgProtocol.MsgCode.USER_MOVE_TO_CMD_VALUE:
-                    cmd = GameMsgProtocol.UserMoveToCmd.parseFrom(msgBody);
-                    break;
-                default:
-                    break;
+            //获取消息构建器
+            Message.Builder msgBuilder = GameMsgRecoginzer.getBuilderByMsgCode(msgCode);
+            if (msgBuilder == null) {
+                return;
             }
+            msgBuilder.clear();
+            msgBuilder.mergeFrom(msgBody);
+            //构建消息实体
+            Message cmd = msgBuilder.build();
+
             //传递给下一个
             if (cmd != null) {
                 ctx.fireChannelRead(cmd);
