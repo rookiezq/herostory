@@ -47,6 +47,8 @@ public void channelActive(ChannelHandlerContext ctx){
 ### 重构
 
 1. 广播和用户抽取
+
+   采用门面模式，将广播和用户各自的方法、成员都抽取出来
 2. cmd处理抽取
 
    1. cmd转换 欺骗编译器

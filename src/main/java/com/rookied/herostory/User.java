@@ -12,12 +12,12 @@ public class User {
     /**
      * 用户 Id
      */
-    public int userId;
+    private int userId;
 
     /**
      * 影响形象
      */
-    public String heroAvatar;
+    private String heroAvatar;
 
     public User() {
     }
