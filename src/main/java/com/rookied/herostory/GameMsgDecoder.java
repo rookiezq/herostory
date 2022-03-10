@@ -1,7 +1,6 @@
 package com.rookied.herostory;
 
 import com.google.protobuf.GeneratedMessageV3;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.rookied.herostory.msg.GameMsgProtocol;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

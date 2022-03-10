@@ -1,5 +1,7 @@
 package com.rookied.herostory;
 
+import com.google.protobuf.GeneratedMessageV3;
+import com.rookied.herostory.cmdhandler.*;
 import com.rookied.herostory.msg.GameMsgProtocol;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -70,57 +72,22 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
         LOG.info("收到客户端消息, msgClazz = {}, msgBody = {}", msg.getClass().getSimpleName(), msg);
 
         try {
-            if (msg instanceof GameMsgProtocol.UserEntryCmd) {
-                //用户进场
-                GameMsgProtocol.UserEntryCmd cmd = (GameMsgProtocol.UserEntryCmd) msg;
-                int userId = cmd.getUserId();
-                String heroAvatar = cmd.getHeroAvatar();
+            ICmdHandler<? extends GeneratedMessageV3> handler = new CmdHandlerFactory().create(msg);
+            handler.handle(ctx, cast(msg));
 
-                UserManager.addUser(new User(userId, heroAvatar));
-                //将id保存到session
-                ctx.channel().attr(AttributeKey.valueOf("userId")).set(userId);
-                LOG.debug("userId:{} 进场", userId);
-                GameMsgProtocol.UserEntryResult.Builder builder = GameMsgProtocol.UserEntryResult.newBuilder();
-                builder.setUserId(userId);
-                builder.setHeroAvatar(heroAvatar);
-
-                // 构建结果并广播
-                GameMsgProtocol.UserEntryResult userEntryResult = builder.build();
-                Broadcaster.broadcast(userEntryResult);
-            } else if (msg instanceof GameMsgProtocol.WhoElseIsHereCmd) {
-                //还有谁在场
-                GameMsgProtocol.WhoElseIsHereResult.Builder results = GameMsgProtocol.WhoElseIsHereResult.newBuilder();
-
-                for (User user : UserManager.listUser()) {
-                    LOG.info("user:{}", user);
-                    GameMsgProtocol.WhoElseIsHereResult.UserInfo.Builder builder = GameMsgProtocol.WhoElseIsHereResult.UserInfo.newBuilder();
-                    builder.setUserId(user.getUserId());
-                    builder.setHeroAvatar(user.getHeroAvatar());
-                    results.addUserInfo(builder);
-                }
-
-                GameMsgProtocol.WhoElseIsHereResult result = results.build();
-                ctx.writeAndFlush(result);
-            } else if (msg instanceof GameMsgProtocol.UserMoveToCmd) {
-                //用户移动
-                GameMsgProtocol.UserMoveToCmd cmd = (GameMsgProtocol.UserMoveToCmd) msg;
-
-                GameMsgProtocol.UserMoveToResult.Builder builder = GameMsgProtocol.UserMoveToResult.newBuilder();
-                Integer userId = (Integer) ctx.channel().attr(AttributeKey.valueOf("userId")).get();
-                if (userId == null) {
-                    return;
-                }
-                builder.setMoveUserId(userId);
-                builder.setMoveToPosX(cmd.getMoveToPosX());
-                builder.setMoveToPosY(cmd.getMoveToPosY());
-
-                // 构建结果并广播
-                GameMsgProtocol.UserMoveToResult userMoveToResult = builder.build();
-                Broadcaster.broadcast(userMoveToResult);
-            }
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
         }
 
+    }
+
+    /**
+     * 欺骗编译器
+     */
+    public <TCmd extends GeneratedMessageV3> TCmd cast(Object msg) {
+        if (msg == null) {
+            return null;
+        }
+        return (TCmd) msg;
     }
 }

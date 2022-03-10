@@ -48,7 +48,7 @@ public void channelActive(ChannelHandlerContext ctx){
 
 1. 广播和用户抽取
 
-   采用门面模式，将广播和用户各自的方法、成员都抽取出来
+   工具类，将广播和用户各自的方法、成员都抽取出来
 2. cmd处理抽取
 
    1. cmd转换 欺骗编译器
