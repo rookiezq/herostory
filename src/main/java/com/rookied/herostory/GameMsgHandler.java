@@ -73,7 +73,9 @@ public class GameMsgHandler extends SimpleChannelInboundHandler<Object> {
 
         try {
             ICmdHandler<? extends GeneratedMessageV3> handler = CmdHandlerFactory.create(msg.getClass());
-            handler.handle(ctx, cast(msg));
+            if (handler != null) {
+                handler.handle(ctx, cast(msg));
+            }
 
         } catch (Exception e) {
             LOG.error(e.getMessage(), e);
