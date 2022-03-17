@@ -3,7 +3,12 @@ package com.rookied.herostory;
 import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.Message;
 import com.rookied.herostory.msg.GameMsgProtocol;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,6 +17,7 @@ import java.util.Map;
  * @date 2022.03.10
  */
 public class GameMsgRecoginzer {
+    private static final Logger LOG = LoggerFactory.getLogger(GameMsgRecoginzer.class);
     /**
      * 消息编号 -> 消息对象字典
      */
@@ -22,14 +28,36 @@ public class GameMsgRecoginzer {
     private static final Map<Class<?>, Integer> clazzAndMsgCodeMap = new HashMap<>();
 
     public static void init() {
-        msgCodeAndMsgObjMap.put(GameMsgProtocol.MsgCode.USER_ENTRY_CMD_VALUE, GameMsgProtocol.UserEntryCmd.getDefaultInstance());
-        msgCodeAndMsgObjMap.put(GameMsgProtocol.MsgCode.WHO_ELSE_IS_HERE_CMD_VALUE, GameMsgProtocol.WhoElseIsHereCmd.getDefaultInstance());
-        msgCodeAndMsgObjMap.put(GameMsgProtocol.MsgCode.USER_MOVE_TO_CMD_VALUE, GameMsgProtocol.UserMoveToCmd.getDefaultInstance());
+        GameMsgProtocol.MsgCode[] values = GameMsgProtocol.MsgCode.values();
+        //将枚举cmd名字和对应的int提前放入map
+        Map<String, Integer> msgCodeEnumMap = new HashMap<>(values.length - 1);
+        for (GameMsgProtocol.MsgCode msgCode : values) {
+            if (GameMsgProtocol.MsgCode.UNRECOGNIZED == msgCode) continue;
+            String name = msgCode.name().replace("_", "");
+            msgCodeEnumMap.put(name, msgCode.getNumber());
+        }
+        //遍历GameMsgProtocol内部类
+        Class<?>[] classes = GameMsgProtocol.class.getClasses();
+        for (Class<?> aClass : classes) {
+            //去除不是GeneratedMessageV3的子类
+            if (!GeneratedMessageV3.class.isAssignableFrom(aClass)) {
+                continue;
+            }
 
-        clazzAndMsgCodeMap.put(GameMsgProtocol.UserEntryResult.class, GameMsgProtocol.MsgCode.USER_ENTRY_RESULT_VALUE);
-        clazzAndMsgCodeMap.put(GameMsgProtocol.WhoElseIsHereResult.class, GameMsgProtocol.MsgCode.WHO_ELSE_IS_HERE_RESULT_VALUE);
-        clazzAndMsgCodeMap.put(GameMsgProtocol.UserMoveToResult.class, GameMsgProtocol.MsgCode.USER_MOVE_TO_RESULT_VALUE);
-        clazzAndMsgCodeMap.put(GameMsgProtocol.UserQuitResult.class, GameMsgProtocol.MsgCode.USER_QUIT_RESULT_VALUE);
+            String simpleName = aClass.getSimpleName().toUpperCase();
+            Integer msgCode = msgCodeEnumMap.get(simpleName);
+
+            try {
+                Method method = aClass.getDeclaredMethod("getDefaultInstance");
+                Object instance = method.invoke(aClass);
+                msgCodeAndMsgObjMap.put(msgCode, (GeneratedMessageV3) instance);
+                clazzAndMsgCodeMap.put(aClass, msgCode);
+            } catch (IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        }
+
+        LOG.info("===完成命令与处理器的关联===");
     }
 
     private GameMsgRecoginzer() {
@@ -58,5 +86,9 @@ public class GameMsgRecoginzer {
             return -1;
         }
         return clazzAndMsgCodeMap.get(msgClazz);
+    }
+
+    public static void main(String[] args) {
+        GameMsgRecoginzer.init();
     }
 }
